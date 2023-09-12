@@ -24,7 +24,6 @@ pipeline_tag: sentence-similarity
 More details please refer to our Github: [FlagEmbedding](https://github.com/FlagOpen/FlagEmbedding).
 
 
-
 [English](README.md) | [中文](https://github.com/FlagOpen/FlagEmbedding/blob/master/README_zh.md)
 
 FlagEmbedding can map any text to a low-dimensional dense vector which can be used for tasks like retrieval, classification,  clustering, or semantic search.
