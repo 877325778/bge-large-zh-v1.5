@@ -2,7 +2,6 @@
 license: mit
 language:
 - zh
-pipeline_tag: sentence-similarity
 ---
 
 
