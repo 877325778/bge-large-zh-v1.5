@@ -23,18 +23,6 @@ pipeline_tag: sentence-similarity
 More details please refer to our Github: [FlagEmbedding](https://github.com/FlagOpen/FlagEmbedding).
 
 
-<h4 align="center">
-    <p>
-        <a href=#model-list>Model List</a> | 
-        <a href=#frequently-asked-questions>FAQ</a> |
-        <a href=#usage>Usage</a>  |
-        <a href="#evaluation">Evaluation</a> |
-        <a href="#train">Train</a> |
-        <a href="#contact">Contact</a> |
-        <a href="#license">License</a> 
-    <p>
-</h4>
-
 
 [English](README.md) | [中文](https://github.com/FlagOpen/FlagEmbedding/blob/master/README_zh.md)
 
