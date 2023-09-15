@@ -16,6 +16,7 @@ language:
         <a href="#evaluation">Evaluation</a> |
         <a href="#train">Train</a> |
         <a href="#contact">Contact</a> |
+        <a href="#citation">Citation</a> |
         <a href="#license">License</a> 
     <p>
 </h4>
@@ -29,6 +30,7 @@ FlagEmbedding can map any text to a low-dimensional dense vector which can be us
 And it also can be used in vector databases for LLMs.
 
 ************* 🌟**Updates**🌟 *************
+- 09/15/2023: Release [paper](https://arxiv.org/pdf/2309.07597.pdf) and [dataset](https://data.baai.ac.cn/details/BAAI-MTP).
 - 09/12/2023: New Release: 
     - **New reranker model**: release cross-encoder models `BAAI/bge-reranker-base` and `BAAI/bge-reranker-large`, which are more powerful than embedding model. We recommend to use/fine-tune them to re-rank top-k documents returned by embedding models. 
     - **update embedding model**: release `bge-*-v1.5` embedding model to alleviate the issue of the similarity distribution, and enhance its retrieval ability without instruction.
@@ -63,9 +65,8 @@ And it also can be used in vector databases for LLMs.
 
 \*: If you need to search the relevant passages to a query, we suggest to add the instruction to the query; in other cases, no instruction is needed, just use the original query directly. In all cases, **no instruction** needs to be added to passages.
 
-\**: Different embedding model, reranker is a cross-encoder, which cannot be used to generate embedding. To balance the accuracy and time cost, cross-encoder is widely used to re-rank top-k documents retrieved by other simple models. 
+\**: Different from embedding model, reranker uses question and document as input and directly output similarity instead of embedding. To balance the accuracy and time cost, cross-encoder is widely used to re-rank top-k documents retrieved by other simple models. 
 For examples, use bge embedding model to retrieve top 100 relevant documents, and then use bge reranker to re-rank the top 100 document to get the final top-3 results.
-
 
 ## Frequently asked questions
 
@@ -129,7 +130,9 @@ If it doesn't work for you, you can see [FlagEmbedding](https://github.com/FlagO
 from FlagEmbedding import FlagModel
 sentences_1 = ["样例数据-1", "样例数据-2"]
 sentences_2 = ["样例数据-3", "样例数据-4"]
-model = FlagModel('BAAI/bge-large-zh', query_instruction_for_retrieval="为这个句子生成表示以用于检索相关文章：")
+model = FlagModel('BAAI/bge-large-zh-v1.5', 
+                  query_instruction_for_retrieval="为这个句子生成表示以用于检索相关文章：",
+                  use_fp16=True) # Setting use_fp16 to True speeds up computation with a slight performance degradation
 embeddings_1 = model.encode(sentences_1)
 embeddings_2 = model.encode(sentences_2)
 similarity = embeddings_1 @ embeddings_2.T
@@ -160,7 +163,7 @@ pip install -U sentence-transformers
 from sentence_transformers import SentenceTransformer
 sentences_1 = ["样例数据-1", "样例数据-2"]
 sentences_2 = ["样例数据-3", "样例数据-4"]
-model = SentenceTransformer('BAAI/bge-large-zh')
+model = SentenceTransformer('BAAI/bge-large-zh-v1.5')
 embeddings_1 = model.encode(sentences_1, normalize_embeddings=True)
 embeddings_2 = model.encode(sentences_2, normalize_embeddings=True)
 similarity = embeddings_1 @ embeddings_2.T
@@ -175,7 +178,7 @@ queries = ['query_1', 'query_2']
 passages = ["样例文档-1", "样例文档-2"]
 instruction = "为这个句子生成表示以用于检索相关文章："
 
-model = SentenceTransformer('BAAI/bge-large-zh')
+model = SentenceTransformer('BAAI/bge-large-zh-v1.5')
 q_embeddings = model.encode([instruction+q for q in queries], normalize_embeddings=True)
 p_embeddings = model.encode(passages, normalize_embeddings=True)
 scores = q_embeddings @ p_embeddings.T
@@ -186,7 +189,7 @@ scores = q_embeddings @ p_embeddings.T
 You can use `bge` in langchain like this:
 ```python
 from langchain.embeddings import HuggingFaceBgeEmbeddings
-model_name = "BAAI/bge-small-en"
+model_name = "BAAI/bge-large-en-v1.5"
 model_kwargs = {'device': 'cuda'}
 encode_kwargs = {'normalize_embeddings': True} # set True to compute cosine similarity
 model = HuggingFaceBgeEmbeddings(
@@ -210,8 +213,8 @@ import torch
 sentences = ["样例数据-1", "样例数据-2"]
 
 # Load model from HuggingFace Hub
-tokenizer = AutoTokenizer.from_pretrained('BAAI/bge-large-zh')
-model = AutoModel.from_pretrained('BAAI/bge-large-zh')
+tokenizer = AutoTokenizer.from_pretrained('BAAI/bge-large-zh-v1.5')
+model = AutoModel.from_pretrained('BAAI/bge-large-zh-v1.5')
 model.eval()
 
 # Tokenize sentences
@@ -231,6 +234,7 @@ print("Sentence embeddings:", sentence_embeddings)
 
 ### Usage for Reranker
 
+Different from embedding model, reranker uses question and document as input and directly output similarity instead of embedding. 
 You can get a relevance score by inputting query and passage to the reranker. 
 The reranker is optimized based cross-entropy loss, so the relevance score is not bounded to a specific range.
 
@@ -240,10 +244,10 @@ The reranker is optimized based cross-entropy loss, so the relevance score is no
 pip install -U FlagEmbedding
 ```
 
-Get relevance score:
+Get relevance scores (higher scores indicate more relevance):
 ```python
 from FlagEmbedding import FlagReranker
-reranker = FlagReranker('BAAI/bge-reranker-base', use_fp16=True) #use fp16 can speed up computing
+reranker = FlagReranker('BAAI/bge-reranker-large', use_fp16=True) # Setting use_fp16 to True speeds up computation with a slight performance degradation
 
 score = reranker.compute_score(['query', 'passage'])
 print(score)
@@ -257,10 +261,10 @@ print(scores)
 
 ```python
 import torch
-from transformers import AutoModelForSequenceClassification, AutoTokenizer, BatchEncoding, PreTrainedTokenizerFast
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-tokenizer = AutoTokenizer.from_pretrained('BAAI/bge-reranker-base')
-model = AutoModelForSequenceClassification.from_pretrained('BAAI/bge-reranker-base')
+tokenizer = AutoTokenizer.from_pretrained('BAAI/bge-reranker-large')
+model = AutoModelForSequenceClassification.from_pretrained('BAAI/bge-reranker-large')
 model.eval()
 
 pairs = [['what is panda?', 'hi'], ['what is panda?', 'The giant panda (Ailuropoda melanoleuca), sometimes called a panda bear or simply panda, is a bear species endemic to China.']]
@@ -326,7 +330,7 @@ Please refer to [C_MTEB](https://github.com/FlagOpen/FlagEmbedding/blob/master/C
 - **Reranking**:
 See [C_MTEB](https://github.com/FlagOpen/FlagEmbedding/blob/master/C_MTEB/) for evaluation script.
 
-| Model | T2Reranking | T2RerankingZh2En\* | T2RerankingEn2Zh\* | MmarcoReranking | CMedQAv1 | CMedQAv2 | Avg |  
+| Model | T2Reranking | T2RerankingZh2En\* | T2RerankingEn2Zh\* | MMarcoReranking | CMedQAv1 | CMedQAv2 | Avg |  
 |:-------------------------------|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|  
 | text2vec-base-multilingual | 64.66 | 62.94 | 62.51 | 14.37 | 48.46 | 48.6 | 50.26 |  
 | multilingual-e5-small | 65.62 | 60.94 | 56.41 | 29.91 | 67.26 | 66.54 | 57.78 |  
@@ -339,13 +343,13 @@ See [C_MTEB](https://github.com/FlagOpen/FlagEmbedding/blob/master/C_MTEB/) for 
 | [BAAI/bge-reranker-base](https://huggingface.co/BAAI/bge-reranker-base) | 67.28 | 63.95 | 60.45 | 35.46 | 81.26 | 84.1 | 65.42 |  
 | [BAAI/bge-reranker-large](https://huggingface.co/BAAI/bge-reranker-large) | 67.6 | 64.03 | 61.44 | 37.16 | 82.15 | 84.18 | 66.09 |  
 
-\* : T2RerankingZh2En and T2RerankingEn2Zh are cross-language retrieval task
+\* : T2RerankingZh2En and T2RerankingEn2Zh are cross-language retrieval tasks
 
 ## Train
 
 ### BAAI Embedding 
 
-We pre-train the models using retromae and train them on large-scale pairs data using contrastive learning. 
+We pre-train the models using [retromae](https://github.com/staoxiao/RetroMAE) and train them on large-scale pairs data using contrastive learning. 
 **You can fine-tune the embedding model on your data following our [examples](https://github.com/FlagOpen/FlagEmbedding/tree/master/examples/finetune).**
 We also provide a [pre-train example](https://github.com/FlagOpen/FlagEmbedding/tree/master/examples/pretrain).
 Note that the goal of pre-training is to reconstruct the text, and the pre-trained model cannot be used for similarity calculation directly, it needs to be fine-tuned.
@@ -367,6 +371,20 @@ More details pelease refer to [./FlagEmbedding/reranker/README.md](https://githu
 If you have any question or suggestion related to this project, feel free to open an issue or pull request.
 You also can email Shitao Xiao(stxiao@baai.ac.cn) and Zheng Liu(liuzheng@baai.ac.cn). 
 
+
+## Citation
+
+If you find our work helpful, please cite us:
+```
+@misc{bge_embedding,
+      title={C-Pack: Packaged Resources To Advance General Chinese Embedding}, 
+      author={Shitao Xiao and Zheng Liu and Peitian Zhang and Niklas Muennighoff},
+      year={2023},
+      eprint={2309.07597},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL}
+}
+```
 
 ## License
 FlagEmbedding is licensed under the [MIT License](https://github.com/FlagOpen/FlagEmbedding/blob/master/LICENSE). The released models can be used for commercial purposes free of charge.
